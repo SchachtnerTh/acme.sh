@@ -110,7 +110,21 @@ _ISPC_getZoneInfo() {
         ;;
       *) _info "Retrieved Zone ID" ;;
     esac
-    client_id=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
+    sys_userid=$(echo "${curResult}" | _egrep_o "sys_userid.*" | cut -d ':' -f 2 | cut -d '"' -f 2)
+    _debug "SYS User ID: '${sys_userid}'"
+    case "${sys_userid}" in
+      '' | *[!0-9]*)
+        _err "User ID is not numeric."
+        return 1
+        ;;
+      *) _info "Retrieved SYS User ID." ;;
+    esac
+    zoneFound=""
+    zoneEnd=""
+    # Need to also get client_id as it is different from sys_userid
+    curData="{\"session_id\":\"${sessionID}\",\"sys_userid\":\"${sys_userid}\"}"
+    curResult="$(_post "${curData}" "${ISPC_Api}?client_get_id")"
+    client_id=$(echo "${curResult}" | _egrep_o "response.*" | cut -d ':' -f 2 | cut -d '"' -f 2 | tr -d '{}')
     _debug "Client ID: '${client_id}'"
     case "${client_id}" in
       '' | *[!0-9]*)
@@ -119,8 +133,6 @@ _ISPC_getZoneInfo() {
         ;;
       *) _info "Retrieved Client ID." ;;
     esac
-    zoneFound=""
-    zoneEnd=""
   fi
 }
 
